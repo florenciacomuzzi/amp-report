@@ -6,13 +6,7 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 30,
-      "includeFiles": [
-        "node_modules/pg/**",
-        "node_modules/pg-native/**",
-        "node_modules/pg-hstore/**",
-        "node_modules/sequelize/**",
-        "node_modules/sequelize-typescript/**"
-      ]
+      "includeFiles": "node_modules/**"
     }
   },
   "rewrites": [
