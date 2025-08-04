@@ -1,4 +1,3 @@
-import * as openaiService from './openaiService';
 
 interface PropertyData {
   address: {
@@ -113,22 +112,24 @@ export async function estimateRentRange(propertyData: PropertyData): Promise<Ren
     }
   }
   
-  // Adjust for special features using AI if available
-  if (propertyData.details.specialFeatures && process.env.OPENAI_API_KEY) {
-    try {
-      const prompt = `Based on these special features of a ${propertyData.details.propertyType} in ${city}, ${propertyData.address.state}, estimate the percentage premium or discount they would add to rent. Features: "${propertyData.details.specialFeatures}". Respond with just a number between -20 and +30 representing the percentage adjustment.`;
-      
-      const response = await openaiService.generateTenantProfile(prompt);
-      const adjustment = parseFloat(response.content) || 0;
-      
-      if (adjustment !== 0) {
-        const adjustmentFactor = 1 + (adjustment / 100);
-        baseMin = Math.round(baseMin * adjustmentFactor);
-        baseMax = Math.round(baseMax * adjustmentFactor);
-        factors.push(`Special features adjustment: ${adjustment > 0 ? '+' : ''}${adjustment}%`);
-      }
-    } catch (error) {
-      console.error('Error getting AI rent adjustment:', error);
+  // For now, skip AI adjustment for special features
+  // This would require creating a separate OpenAI function or using chatWithAI
+  if (propertyData.details.specialFeatures) {
+    // Simple rule-based adjustment for special features
+    const features = propertyData.details.specialFeatures.toLowerCase();
+    let adjustment = 0;
+    
+    if (features.includes('luxury') || features.includes('high-end')) adjustment += 15;
+    if (features.includes('renovated') || features.includes('updated')) adjustment += 10;
+    if (features.includes('view') || features.includes('scenic')) adjustment += 8;
+    if (features.includes('private') || features.includes('exclusive')) adjustment += 5;
+    if (features.includes('historic') || features.includes('vintage')) adjustment += 3;
+    
+    if (adjustment > 0) {
+      const adjustmentFactor = 1 + (adjustment / 100);
+      baseMin = Math.round(baseMin * adjustmentFactor);
+      baseMax = Math.round(baseMax * adjustmentFactor);
+      factors.push(`Special features premium: +${adjustment}%`);
     }
   }
   
