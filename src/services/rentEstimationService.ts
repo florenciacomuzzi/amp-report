@@ -142,6 +142,11 @@ export async function estimateRentRange(propertyData: PropertyData): Promise<Ren
   baseMin = Math.round(baseMin / 50) * 50;
   baseMax = Math.round(baseMax / 50) * 50;
   
+  // Ensure a reasonable spread between min and max (at least 20%)
+  if (baseMax < baseMin * 1.2) {
+    baseMax = Math.round(baseMin * 1.4 / 50) * 50;
+  }
+  
   // Calculate confidence based on data completeness
   let confidence = 0.7; // Base confidence
   if (locationMultiplier > 1) confidence += 0.1;

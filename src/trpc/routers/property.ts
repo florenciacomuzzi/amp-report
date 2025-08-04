@@ -29,6 +29,14 @@ export const propertyRouter = router({
       if (!property) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
       }
+      
+      console.log('Property get:', {
+        propertyId: id,
+        propertyUserId: property.userId,
+        currentUserId: ctx.user?.id,
+        hasUserId: !!property.userId
+      });
+      
       if (property.userId && property.userId !== ctx.user!.id) {
         throw new TRPCError({ code: 'FORBIDDEN' });
       }
@@ -91,6 +99,18 @@ export const propertyRouter = router({
           if (!input.details.targetRentRange.max || input.details.targetRentRange.max <= 0) {
             input.details.targetRentRange.max = estimate.max;
           }
+          
+          // Ensure max is greater than min
+          if (input.details.targetRentRange.min >= input.details.targetRentRange.max) {
+            // If user provided a min, set max to be 50% higher
+            if (input.details.targetRentRange.min > 0) {
+              input.details.targetRentRange.max = Math.round(input.details.targetRentRange.min * 1.5 / 50) * 50;
+            } else {
+              // Otherwise use the estimates
+              input.details.targetRentRange.min = estimate.min;
+              input.details.targetRentRange.max = estimate.max;
+            }
+          }
         } catch (error) {
           console.error('Failed to estimate rent range:', error);
           // Continue with provided values
@@ -144,9 +164,20 @@ export const propertyRouter = router({
       if (!property) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
       }
-      if (property.userId !== ctx.user!.id) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
+      
+      console.log('Property update:', {
+        propertyId: id,
+        propertyUserId: property.userId,
+        currentUserId: ctx.user?.id,
+        hasUserId: !!property.userId
+      });
+      
+      // Only check authorization if property has a userId
+      // Properties without userId are considered public/demo properties
+      if (property.userId && property.userId !== ctx.user!.id) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have permission to update this property' });
       }
+      
       await property.update(data);
       return { property };
     }),
@@ -219,8 +250,21 @@ export const propertyRouter = router({
       if (!property) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Property not found' });
       }
-      if (property.userId !== ctx.user!.id) {
-        throw new TRPCError({ code: 'FORBIDDEN' });
+      
+      console.log('Delete attempt:', {
+        propertyId: id,
+        propertyUserId: property.userId,
+        currentUserId: ctx.user?.id,
+        userIdType: typeof ctx.user?.id,
+        propertyUserIdType: typeof property.userId
+      });
+      
+      // Allow deletion if property has no userId (legacy data) or if user owns it
+      if (property.userId && property.userId !== ctx.user!.id) {
+        // Double-check with string comparison in case of type mismatch
+        if (String(property.userId) !== String(ctx.user!.id)) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'You can only delete your own properties' });
+        }
       }
       await property.update({ isActive: false });
       return { success: true };

@@ -20,7 +20,16 @@ export const generateTenantProfile = async (
 }> => {
   try {
     // Build location context based on actual transit data
-    let locationContext = `Location: ${property.address.city}, ${property.address.state}\n`;
+    let locationContext = '';
+    
+    // Check if property has address data
+    if (property.address && property.address.city && property.address.state) {
+      locationContext = `Location: ${property.address.city}, ${property.address.state}\n`;
+    } else {
+      // Fallback if address is missing
+      locationContext = 'Location: Not specified\n';
+      logger.warn('Property address is missing or incomplete', { propertyId: property.id });
+    }
     
     if (transitInfo) {
       locationContext += `\nTransportation Infrastructure:\n`;
@@ -62,13 +71,13 @@ export const generateTenantProfile = async (
     Based on the property details and location, generate a detailed ideal tenant profile.
     
     Property Details:
-    - Location: ${JSON.stringify(property.address)}
-    - Type: ${property.details.propertyType}
-    - Units: ${property.details.numberOfUnits}
-    - Year Built: ${property.details.yearBuilt}
-    - Target Rent: $${property.details.targetRentRange.min}-$${property.details.targetRentRange.max}
-    - Current Amenities: ${property.details.currentAmenities.join(', ')}
-    ${property.details.nearbyLandmarks ? `- Nearby: ${property.details.nearbyLandmarks.join(', ')}` : ''}
+    - Location: ${property.address ? JSON.stringify(property.address) : 'Not specified'}
+    - Type: ${property.details?.propertyType || 'Not specified'}
+    - Units: ${property.details?.numberOfUnits || 'Not specified'}
+    - Year Built: ${property.details?.yearBuilt || 'Not specified'}
+    - Target Rent: ${property.details?.targetRentRange ? `$${property.details.targetRentRange.min}-$${property.details.targetRentRange.max}` : 'Not specified'}
+    - Current Amenities: ${property.details?.currentAmenities?.length ? property.details.currentAmenities.join(', ') : 'None listed'}
+    ${property.details?.nearbyLandmarks?.length ? `- Nearby: ${property.details.nearbyLandmarks.join(', ')}` : ''}
     
     ${locationContext}
     
@@ -79,20 +88,51 @@ export const generateTenantProfile = async (
     - Lifestyle preferences influenced by walkability and transit access
     - Income requirements adjusted for transportation costs (car ownership vs transit passes)
     
-    Generate a comprehensive tenant profile in JSON format that reflects the actual transportation options available.`;
+    IMPORTANT: You must respond with ONLY valid JSON, no markdown code blocks, no explanations, no additional text.
+    
+    Generate a comprehensive tenant profile as a JSON object with this exact structure:
+    {
+      "demographics": {
+        "ageRange": { "min": 25, "max": 35 },
+        "incomeRange": { "min": 50000, "max": 80000 },
+        "familyComposition": ["Single", "Young couples"],
+        "professionalBackgrounds": ["Tech", "Healthcare"]
+      },
+      "preferences": {
+        "transportationNeeds": ["Public transit", "Bike"],
+        "petOwnership": false,
+        "amenityPriorities": ["Fitness", "Work from home"]
+      },
+      "lifestyle": [
+        { "category": "Active", "description": "Regular exercise", "importance": "high" }
+      ],
+      "summary": "Young professionals who value..."
+    }`;
 
     const response = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4',
       messages: [
         { role: 'system', content: systemPrompt },
         ...conversationHistory,
-        { role: 'user', content: 'Generate the ideal tenant profile for this property.' }
+        { role: 'user', content: 'Generate the ideal tenant profile for this property. Respond with valid JSON only.' }
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.7
     });
 
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const responseContent = response.choices[0].message.content || '{}';
+    logger.info('OpenAI response:', { responseContent });
+    
+    let result;
+    try {
+      // Remove any markdown code blocks if present
+      const cleanedContent = responseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      result = JSON.parse(cleanedContent);
+    } catch (error) {
+      logger.error('Failed to parse OpenAI response:', { error, responseContent });
+      result = {};
+    }
+    
+    logger.info('Parsed tenant profile data:', { result });
 
     return {
       demographics: result.demographics || {

@@ -2,6 +2,7 @@ import { router, publicProcedure } from '../core';
 import Amenity from '../../models/Amenity';
 import { Op } from 'sequelize';
 import { z } from 'zod';
+import { AmenityRecommendationService } from '../../services/amenityRecommendation.service';
 
 export const amenityRouter = router({
   // List amenities with optional filters
@@ -39,5 +40,36 @@ export const amenityRouter = router({
         throw new Error('Amenity not found');
       }
       return { amenity };
+    }),
+
+  // Get amenity recommendations based on tenant profile
+  recommend: publicProcedure
+    .input(z.object({
+      tenantProfileId: z.string(),
+      budget: z.object({
+        min: z.number(),
+        max: z.number()
+      }).optional()
+    }))
+    .query(async ({ input }) => {
+      const recommendations = await AmenityRecommendationService.getRecommendations(
+        input.tenantProfileId,
+        input.budget
+      );
+      return { recommendations };
+    }),
+
+  // Get cost estimates for specific amenities
+  getCostEstimates: publicProcedure
+    .input(z.object({
+      amenityIds: z.array(z.string()),
+      propertySize: z.number().optional()
+    }))
+    .query(async ({ input }) => {
+      const estimates = await AmenityRecommendationService.getAmenitiesWithCostEstimates(
+        input.amenityIds,
+        input.propertySize
+      );
+      return { estimates };
     }),
 });

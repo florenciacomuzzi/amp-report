@@ -36,8 +36,10 @@ services:
       context: ./client
       dockerfile: Dockerfile.dev
     container_name: amp-report-client-dev
+    env_file:
+      - .env
     environment:
-      - REACT_APP_API_URL=http://app:3000
+      - REACT_APP_API_URL=http://localhost:3000
       - PORT=3001
       - WATCHPACK_POLLING=true
       - WDS_SOCKET_HOST=localhost

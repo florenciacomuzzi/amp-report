@@ -12,6 +12,7 @@ import PropertyDetail from './pages/PropertyDetail';
 import PropertyForm from './pages/PropertyForm';
 import AnalysisTRPC from './pages/AnalysisTRPC';
 import Reports from './pages/Reports';
+import TestMaps from './pages/TestMaps';
 import { RootState } from './store';
 import { checkAuth } from './store/slices/authSlice';
 
@@ -44,6 +45,7 @@ function App() {
           <Route path="/properties/:id/edit" element={<PropertyForm />} />
           <Route path="/properties/:id/analysis" element={<AnalysisTRPC />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/test-maps" element={<TestMaps />} />
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Route>
       </Route>

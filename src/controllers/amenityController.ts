@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Amenity from '../models/Amenity';
 import { AppError } from '../middleware/errorHandler';
+import { AmenityRecommendationService } from '../services/amenityRecommendation.service';
 
 export const getAmenities = async (
   req: Request,
@@ -136,6 +137,63 @@ export const deleteAmenity = async (
     res.json({
       success: true,
       message: 'Amenity deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecommendations = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { tenantProfileId, minBudget, maxBudget } = req.query;
+
+    if (!tenantProfileId) {
+      throw new AppError('Tenant profile ID is required', 400);
+    }
+
+    const budget = minBudget && maxBudget ? {
+      min: Number(minBudget),
+      max: Number(maxBudget)
+    } : undefined;
+
+    const recommendations = await AmenityRecommendationService.getRecommendations(
+      tenantProfileId as string,
+      budget
+    );
+
+    res.json({
+      success: true,
+      recommendations
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCostEstimates = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { amenityIds, propertySize } = req.body;
+
+    if (!amenityIds || !Array.isArray(amenityIds)) {
+      throw new AppError('Amenity IDs array is required', 400);
+    }
+
+    const estimates = await AmenityRecommendationService.getAmenitiesWithCostEstimates(
+      amenityIds,
+      propertySize ? Number(propertySize) : undefined
+    );
+
+    res.json({
+      success: true,
+      estimates
     });
   } catch (error) {
     next(error);

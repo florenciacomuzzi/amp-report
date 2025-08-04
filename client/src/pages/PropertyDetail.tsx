@@ -138,7 +138,12 @@ function PropertyDetail() {
 
   const handleDelete = async () => {
     if (currentProperty && window.confirm('Are you sure you want to delete this property?')) {
-      await deletePropertyMutation.mutateAsync(String(currentProperty.id));
+      try {
+        await deletePropertyMutation.mutateAsync(String(currentProperty.id));
+      } catch (error: any) {
+        console.error('Failed to delete property:', error);
+        alert(error.message || 'Failed to delete property. You may not have permission to delete this property.');
+      }
     }
   };
 

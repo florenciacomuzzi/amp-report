@@ -34,7 +34,7 @@ interface PropertyFormData {
   };
   propertyDetails: {
     numberOfUnits: number;
-    propertyType: 'apartment' | 'condo' | 'townhouse' | 'other';
+    propertyType: 'apartment' | 'condo' | 'townhouse' | 'other' | '';
     yearBuilt: number;
     targetRentRange: {
       min: number;
@@ -100,7 +100,7 @@ function PropertyForm() {
       },
       propertyDetails: {
         numberOfUnits: 1,
-        propertyType: undefined,
+        propertyType: '',
         yearBuilt: new Date().getFullYear(),
         targetRentRange: {
           min: 0,
@@ -128,12 +128,28 @@ function PropertyForm() {
       setGeocoding(true);
       try {
         const fullAddress = `${address.street}, ${address.city}, ${address.state} ${address.zip}`;
-        await geocodeMutation.mutateAsync({ address: fullAddress });
+        const result = await geocodeMutation.mutateAsync({ address: fullAddress });
+        
+        if (result.result) {
+          // Update coordinates from geocoding result
+          setCoordinates({
+            lat: result.result.latitude,
+            lng: result.result.longitude,
+          });
+          
+          // Optionally update the formatted address
+          if (result.result.formattedAddress) {
+            setValue('address.street', result.result.formattedAddress.split(',')[0]);
+          }
+        }
       } catch (error) {
         console.error('Geocoding failed:', error);
+        alert('Failed to verify address. Please check the address and try again.');
       } finally {
         setGeocoding(false);
       }
+    } else {
+      alert('Please fill in all address fields before verifying.');
     }
   };
 
@@ -150,8 +166,20 @@ function PropertyForm() {
 
   const handleEstimateRent = async () => {
     const formData = watch();
-    if (!formData.address.city || !formData.propertyDetails.propertyType || !formData.propertyDetails.yearBuilt) {
+    console.log('Estimating rent with data:', formData);
+    
+    if (!formData.address.city || !formData.propertyDetails.propertyType) {
+      console.log('Cannot estimate rent - missing required fields:', {
+        city: formData.address.city,
+        propertyType: formData.propertyDetails.propertyType
+      });
+      // Silently return - user hasn't selected property type yet
       return;
+    }
+    
+    // Use current year if year built is not provided
+    if (!formData.propertyDetails.yearBuilt) {
+      formData.propertyDetails.yearBuilt = new Date().getFullYear();
     }
 
     setEstimatingRent(true);
@@ -159,21 +187,49 @@ function PropertyForm() {
       const result = await estimateRentMutation.mutateAsync({
         address: formData.address,
         details: {
-          ...formData.propertyDetails,
+          numberOfUnits: formData.propertyDetails.numberOfUnits || 1,
+          propertyType: formData.propertyDetails.propertyType,
+          yearBuilt: formData.propertyDetails.yearBuilt || new Date().getFullYear(),
           currentAmenities: amenities,
+          specialFeatures: formData.propertyDetails.specialFeatures,
+          targetRentRange: {
+            min: formData.propertyDetails.targetRentRange?.min || 0,
+            max: formData.propertyDetails.targetRentRange?.max || 0,
+          },
         },
         latitude: coordinates?.lat,
         longitude: coordinates?.lng,
       });
       
+      console.log('Rent estimation result:', result);
+      
       if (result.estimate) {
         setRentEstimate(result.estimate);
-        // Auto-fill the rent range if it's currently empty or zero
-        const currentMin = watch('propertyDetails.targetRentRange.min');
-        const currentMax = watch('propertyDetails.targetRentRange.max');
-        if ((!currentMin || currentMin === 0) && (!currentMax || currentMax === 0)) {
+        
+        const currentMin = Number(watch('propertyDetails.targetRentRange.min')) || 0;
+        const currentMax = Number(watch('propertyDetails.targetRentRange.max')) || 0;
+        
+        // If user has entered a minimum rent, ensure max is reasonable
+        if (currentMin > 0 && currentMax === 0) {
+          // Set max to be 40-60% higher than min (typical rental range)
+          const suggestedMax = Math.round(currentMin * 1.5 / 50) * 50;
+          // Ensure max is always greater than min, use the higher of suggested or estimate
+          setValue('propertyDetails.targetRentRange.max', Math.max(suggestedMax, result.estimate.max, currentMin + 100));
+        } 
+        // If user has entered a maximum rent, ensure min is reasonable
+        else if (currentMin === 0 && currentMax > 0) {
+          // Set min to be 60-70% of max
+          const suggestedMin = Math.round(currentMax * 0.65 / 50) * 50;
+          setValue('propertyDetails.targetRentRange.min', Math.min(suggestedMin, result.estimate.min));
+        }
+        // If both are empty, use the estimates
+        else if (currentMin === 0 && currentMax === 0) {
           setValue('propertyDetails.targetRentRange.min', result.estimate.min);
           setValue('propertyDetails.targetRentRange.max', result.estimate.max);
+        }
+        // If both are filled but max < min, fix it
+        else if (currentMin > 0 && currentMax > 0 && currentMax < currentMin) {
+          setValue('propertyDetails.targetRentRange.max', Math.round(currentMin * 1.5 / 50) * 50);
         }
       }
     } catch (error) {
@@ -184,18 +240,35 @@ function PropertyForm() {
   };
 
   const onSubmit = async (data: PropertyFormData) => {
+    // Validate required fields
+    if (!data.propertyDetails.propertyType || data.propertyDetails.propertyType.length === 0) {
+      alert('Please select a property type');
+      setActiveStep(2); // Go back to property details step
+      return;
+    }
+
+    const minRent = Number(data.propertyDetails.targetRentRange.min) || 0;
+    const maxRent = Number(data.propertyDetails.targetRentRange.max) || 0;
+    
+    // Validate rent range
+    if (minRent > 0 && maxRent > 0 && minRent >= maxRent) {
+      alert('Maximum rent must be greater than minimum rent');
+      setActiveStep(2); // Go back to property details step
+      return;
+    }
+
     const propertyDataToSave = {
       name: data.name,
       address: data.address,
       details: {
-        numberOfUnits: Number(data.propertyDetails.numberOfUnits),
-        propertyType: data.propertyDetails.propertyType,
-        yearBuilt: Number(data.propertyDetails.yearBuilt),
+        numberOfUnits: Number(data.propertyDetails.numberOfUnits) || 1,
+        propertyType: data.propertyDetails.propertyType as 'apartment' | 'condo' | 'townhouse' | 'other',
+        yearBuilt: Number(data.propertyDetails.yearBuilt) || new Date().getFullYear(),
         targetRentRange: {
-          min: Number(data.propertyDetails.targetRentRange.min),
-          max: Number(data.propertyDetails.targetRentRange.max),
+          min: minRent,
+          max: maxRent,
         },
-        specialFeatures: data.propertyDetails.specialFeatures,
+        specialFeatures: data.propertyDetails.specialFeatures || '',
         currentAmenities: amenities,
       },
       latitude: coordinates?.lat,
@@ -208,8 +281,9 @@ function PropertyForm() {
       } else {
         await createPropertyMutation.mutateAsync(propertyDataToSave);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save property:', error);
+      alert(error.message || 'Failed to save property. Please check all required fields.');
     }
   };
 
@@ -237,14 +311,8 @@ function PropertyForm() {
     
     const result = await trigger(fieldsToValidate);
     if (result) {
-      // Auto-estimate rent when moving from step 1 to step 2
-      if (activeStep === 1) {
-        const currentMin = watch('propertyDetails.targetRentRange.min');
-        const currentMax = watch('propertyDetails.targetRentRange.max');
-        if ((!currentMin || currentMin === 0) && (!currentMax || currentMax === 0)) {
-          await handleEstimateRent();
-        }
-      }
+      // Don't auto-estimate rent when moving to step 2 since property type isn't selected yet
+      // User can click the Auto-Calculate button after selecting property type
       setActiveStep((prev) => prev + 1);
     }
   };
@@ -278,7 +346,12 @@ function PropertyForm() {
         ))}
       </Stepper>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} onKeyDown={(e) => {
+        // Prevent form submission on Enter key except on the last step
+        if (e.key === 'Enter' && activeStep !== steps.length - 1) {
+          e.preventDefault();
+        }
+      }}>
         <Card>
           <CardContent>
             {/* Step 0 */}
@@ -291,6 +364,12 @@ function PropertyForm() {
                     {...register('name', { required: 'Property name is required' })}
                     error={!!errors.name}
                     helperText={errors.name?.message}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleNext();
+                      }
+                    }}
                   />
                 </Grid>
               </Grid>
@@ -347,6 +426,9 @@ function PropertyForm() {
                     {...register('address.city', { required: 'City is required' })}
                     error={!!errors.address?.city}
                     helperText={errors.address?.city?.message}
+                    InputLabelProps={{
+                      shrink: !!watch('address.city'),
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -356,6 +438,9 @@ function PropertyForm() {
                     {...register('address.state', { required: 'State is required' })}
                     error={!!errors.address?.state}
                     helperText={errors.address?.state?.message}
+                    InputLabelProps={{
+                      shrink: !!watch('address.state'),
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={3}>
@@ -365,6 +450,9 @@ function PropertyForm() {
                     {...register('address.zip', { required: 'ZIP code is required' })}
                     error={!!errors.address?.zip}
                     helperText={errors.address?.zip?.message}
+                    InputLabelProps={{
+                      shrink: !!watch('address.zip'),
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -408,7 +496,7 @@ function PropertyForm() {
                   <Controller
                     name="propertyDetails.propertyType"
                     control={control}
-                    defaultValue={undefined}
+                    defaultValue=""
                     rules={{ required: 'Property type is required' }}
                     render={({ field }) => (
                       <TextField
@@ -418,7 +506,11 @@ function PropertyForm() {
                         label="Property Type"
                         error={!!errors.propertyDetails?.propertyType}
                         helperText={errors.propertyDetails?.propertyType?.message}
+                        value={field.value || ''}
                       >
+                        <MenuItem value="">
+                          <em>Select a property type</em>
+                        </MenuItem>
                         <MenuItem value="apartment">Apartment</MenuItem>
                         <MenuItem value="condo">Condo</MenuItem>
                         <MenuItem value="townhouse">Townhouse</MenuItem>
@@ -444,15 +536,27 @@ function PropertyForm() {
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                     <Typography variant="subtitle1">Target Rent Range</Typography>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<AutoFixHigh />}
-                      onClick={handleEstimateRent}
-                      disabled={estimatingRent || !watch('address.city') || !watch('propertyDetails.propertyType')}
+                    <Tooltip 
+                      title={
+                        !watch('propertyDetails.propertyType')
+                          ? "Please select a property type first" 
+                          : !watch('address.city') 
+                          ? "Please enter a city first"
+                          : ""
+                      }
                     >
-                      {estimatingRent ? 'Estimating...' : 'Auto-Calculate'}
-                    </Button>
+                      <span>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<AutoFixHigh />}
+                          onClick={handleEstimateRent}
+                          disabled={estimatingRent || !watch('address.city') || !watch('propertyDetails.propertyType')}
+                        >
+                          {estimatingRent ? 'Estimating...' : 'Auto-Calculate'}
+                        </Button>
+                      </span>
+                    </Tooltip>
                     {rentEstimate && (
                       <Tooltip 
                         title={
