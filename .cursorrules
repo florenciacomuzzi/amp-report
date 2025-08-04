@@ -1,0 +1,3 @@
+* Use `.specs` folder as specification for app
+* Prefer to use `Makefile`
+* Use Docker services

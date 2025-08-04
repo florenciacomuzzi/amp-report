@@ -1,0 +1,56 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: amp-report-app-dev
+    env_file:
+      - .env.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./nodemon.json:/app/nodemon.json
+    command: npm run dev
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  slides:
+    image: node:20-alpine
+    container_name: amp-report-slides-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: npx reveal-md slides/mvp.md --watch --port 1948
+    ports:
+      - "1948:1948"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: amp-report-client-dev
+    environment:
+      - REACT_APP_API_URL=http://app:3000
+      - PORT=3001
+      - WATCHPACK_POLLING=true
+      - WDS_SOCKET_HOST=localhost
+      - WDS_SOCKET_PORT=3001
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+    ports:
+      - "3001:3001"
+    depends_on:
+      - app
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
