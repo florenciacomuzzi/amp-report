@@ -1,17 +1,17 @@
 # Build stage for backend
 FROM node:18-alpine AS backend-builder
 
-WORKDIR /app
+WORKDIR /app/backend
 
 # Copy package files
-COPY package.json package-lock.json ./
-COPY tsconfig.json ./
+COPY backend/package.json backend/package-lock.json ./
+COPY backend/tsconfig.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy source code
-COPY src ./src
+COPY backend/src ./src
 
 # Build the backend
 RUN npm run build
@@ -45,15 +45,15 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy package files from backend
+COPY backend/package.json backend/package-lock.json ./
 
 # Install production dependencies only
 RUN npm install --only=production && \
     npm cache clean --force
 
 # Copy built backend from builder stage
-COPY --from=backend-builder /app/dist ./dist
+COPY --from=backend-builder /app/backend/dist ./dist
 
 # Copy built frontend from builder stage
 COPY --from=frontend-builder /app/client/build ./client/build

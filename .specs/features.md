@@ -1,275 +1,252 @@
-u# AMP Report Features Specification
+# AMP Report Features Specification
 
 ## Overview
-AMP Report is a web application that helps property managers and real estate professionals determine ideal tenant profiles and suggest appropriate amenities for multifamily properties based on location, property characteristics, and market analysis.
+AMP Report is a web application that helps property managers and real estate professionals determine ideal tenant profiles and suggest appropriate amenities for multifamily properties based on location, property characteristics, and AI-powered market analysis.
 
 ## Core Features
 
-### 1. Property Information Input
-**Description:** Allow users to input comprehensive property details for analysis.
+### 1. User Authentication & Management
+**Description:** Secure user registration and authentication system.
 
-**User Stories:**
-- As a property manager, I want to enter my property's location and see it on a satellite map
-- As a user, I want to save property information for future reference
-- As a user, I want to edit previously entered property details
+**Implemented Features:**
+- Email/password registration with validation
+- JWT-based authentication
+- Secure login with bcrypt password hashing
+- Protected routes requiring authentication
+- User profile management (first name, last name, company, phone)
+- Session management with lastLoginAt tracking
+- Active/inactive user status
 
-**Functional Requirements:**
-- Property address autocomplete using Google Places API
-- Form validation for required fields
-- Real-time satellite imagery display
-- Ability to adjust map pin location
-- Save draft functionality
+**API Endpoints:**
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
 
-**Fields:**
-- Address (street, city, state, zip)
-- Number of units
-- Property type (apartment, condo, townhouse, etc.)
-- Year built
-- Current amenities (multi-select)
-- Special features/preferences (text area)
-- Target rent range
-- Nearby landmarks/attractions
+### 2. Property Management
+**Description:** Comprehensive property information input and management system.
 
-### 2. Google Maps Integration
-**Description:** Display property location with satellite imagery and neighborhood context.
+**Implemented Features:**
+- Create, read, update, and delete (CRUD) operations for properties
+- Property ownership tied to authenticated users
+- Soft delete functionality (isActive flag)
+- Detailed property information storage:
+  - Address (street, city, state, zip, country)
+  - Property details (units, type, year built, amenities)
+  - Geographic coordinates (latitude/longitude)
+  - Target rent range with automatic estimation
+  - Special features and nearby landmarks
 
-**User Stories:**
-- As a user, I want to see my property's exact location on a satellite map
-- As a user, I want to explore the neighborhood around my property
-- As a user, I want to see nearby amenities and attractions
+**Property Types Supported:**
+- Apartment
+- Condo
+- Townhouse
+- Other
 
-**Functional Requirements:**
-- Satellite/Map view toggle
-- Zoom controls
-- Street view integration
-- Nearby places overlay (schools, shopping, transit)
-- Property boundary visualization (if available)
-- Distance measurements to key locations
+**API Endpoints:**
+- `GET /api/properties` - List user's properties
+- `GET /api/properties/:id` - Get property details
+- `POST /api/properties` - Create property
+- `PUT /api/properties/:id` - Update property
+- `DELETE /api/properties/:id` - Soft delete property
 
-### 3. Tenant Profile Generation
-**Description:** AI-assisted analysis to determine ideal tenant demographics and preferences.
+### 3. Google Maps Integration
+**Description:** Full integration with Google Maps for location services.
 
-**User Stories:**
-- As a property manager, I want to understand who my ideal tenants are
-- As a user, I want to see detailed demographic breakdowns
-- As a user, I want to refine the tenant profile based on my preferences
+**Implemented Features:**
+- Address geocoding to get coordinates
+- Google Maps display with property location
+- Nearby places search functionality
+- Static map URL generation
+- Fallback to mock data when API key not configured
+- Default coordinates (Brooklyn) for missing locations
 
-**Functional Requirements:**
-- Interactive questionnaire or chat interface
-- AI-powered analysis using OpenAI API
-- Profile includes:
-  - Age demographics
-  - Income ranges
+**Services Used:**
+- Google Maps JavaScript API
+- Google Geocoding API
+- Google Places API
+
+**API Endpoints:**
+- `POST /api/properties/geocode` - Geocode address
+- `GET /api/properties/:id/nearby-places` - Get nearby places
+
+### 4. AI-Powered Tenant Profile Generation
+**Description:** Generate ideal tenant profiles using OpenAI GPT-4.
+
+**Implemented Features:**
+- Interactive chat interface for profile generation
+- Context-aware AI conversations
+- Tenant profile data includes:
+  - Demographics (age range, income level)
   - Lifestyle preferences
   - Family composition
-  - Professional backgrounds
+  - Professional background
+  - Pet preferences
   - Transportation needs
-  - Pet ownership likelihood
-- Confidence scores for each attribute
-- Ability to manually adjust profile parameters
-- Export tenant profile as PDF
+- Profile storage linked to properties
+- Multiple profiles per property support
 
-**Chat Interface Features:**
-- Natural language processing
-- Context-aware follow-up questions
-- Progress indicator
-- Ability to restart or go back
-- Save conversation history
+**API Endpoints:**
+- `POST /api/tenant-profiles` - Create tenant profile
+- `GET /api/tenant-profiles/:id` - Get tenant profile
+- `POST /api/tenant-profiles/chat` - Chat with AI assistant
 
-### 4. Amenity Recommendations
-**Description:** Suggest amenities based on tenant profile and provide cost estimates.
+### 5. Amenity Recommendations System
+**Description:** AI-powered amenity recommendations based on property and tenant profiles.
 
-**User Stories:**
-- As a property manager, I want to know which amenities will attract my ideal tenants
-- As a user, I want to see ROI estimates for each amenity
-- As a user, I want to prioritize amenities by budget
-
-**Functional Requirements:**
-- Categorized amenity list:
-  - Essential amenities
-  - Lifestyle amenities
-  - Luxury amenities
-  - Technology amenities
-  - Sustainability features
-- Cost estimates with ranges (low/high)
+**Implemented Features:**
+- Pre-seeded database of 50+ amenities
+- Categorized amenities:
+  - Fitness & Wellness
+  - Technology & Connectivity
+  - Community & Social
+  - Convenience & Services
+  - Outdoor & Recreation
+  - Safety & Security
+  - Sustainability & Green
+  - Luxury & Premium
+  - Pet-Friendly
+  - Transportation & Parking
+- AI-driven recommendation scoring
+- ROI estimation for each amenity
+- Cost range estimates (min/max)
 - Implementation timeline estimates
-- ROI calculations
-- Amenity comparison with competing properties
-- Filter by budget
-- Sort by impact/ROI/cost
-- Detailed descriptions and benefits
+- Filtering by category and budget
 
-**Amenity Categories:**
-1. **Fitness & Wellness**
-   - Gym/fitness center
-   - Yoga studio
-   - Pool/spa
-   - Walking trails
+**API Endpoints:**
+- `GET /api/amenities` - List all amenities
+- `GET /api/amenities/categories` - Get categories
+- `POST /api/amenities/recommendations` - Get AI recommendations
 
-2. **Technology**
-   - High-speed internet
-   - Smart home features
-   - EV charging stations
-   - Package lockers
+### 6. Market Analysis & Insights
+**Description:** Comprehensive market analysis combining all data points.
 
-3. **Community**
-   - Clubhouse
-   - Co-working spaces
-   - BBQ areas
-   - Pet facilities
-
-4. **Convenience**
-   - On-site maintenance
-   - Concierge services
-   - Parking options
-   - Storage units
-
-### 5. Authentication (Optional)
-**Description:** User account system for saving and managing multiple properties.
-
-**User Stories:**
-- As a user, I want to create an account to save my work
-- As a returning user, I want to access my previous analyses
-- As a user, I want to manage multiple properties
-
-**Functional Requirements:**
-- Email/password authentication
-- Social login options (Google, Microsoft)
-- Password reset functionality
-- User profile management
-- Multi-property dashboard
-- Sharing capabilities
-- Activity history
-
-### 6. Report Generation
-**Description:** Comprehensive reports combining all analysis results.
-
-**User Stories:**
-- As a property manager, I want to generate professional reports for stakeholders
-- As a user, I want to export data in various formats
-- As a user, I want to customize report content
-
-**Functional Requirements:**
-- PDF export with branding
-- Excel export for data
-- Customizable report sections
-- Executive summary
-- Detailed analysis
-- Visual charts and graphs
-- Comparison with market averages
-- Action plan recommendations
-
-### 7. Market Analysis Dashboard
-**Description:** Visual dashboard showing analysis results and insights.
-
-**User Stories:**
-- As a user, I want to see all my data in one place
-- As a user, I want to track changes over time
-- As a user, I want to compare multiple properties
-
-**Functional Requirements:**
-- Interactive charts and graphs
-- Key metrics display
-- Trend analysis
-- Heat maps for geographic data
+**Implemented Features:**
+- Analysis creation linking property, tenant profile, and amenities
+- Market insights generation
 - Competitive analysis
-- Filter and drill-down capabilities
+- Confidence scoring for recommendations
+- Historical analysis tracking
+- Export functionality (planned)
 
-## Non-Functional Requirements
+**API Endpoints:**
+- `POST /api/analysis` - Create analysis
+- `GET /api/analysis/:id` - Get analysis details
+- `GET /api/analysis/report/:id` - Get analysis report
 
-### Performance
-- Page load time < 3 seconds
-- API response time < 2 seconds
-- Smooth map interactions (60 fps)
-- Optimized for mobile devices
+### 7. Rent Estimation Service
+**Description:** AI-powered rent range estimation based on property details.
 
-### Security
-- HTTPS encryption
-- Secure API key management
-- Input sanitization
-- Rate limiting
-- GDPR compliance
+**Implemented Features:**
+- Automatic rent estimation when creating properties
+- Considers property location, size, type, and amenities
+- Provides min/max rent range
+- Confidence scoring
+- Fallback to reasonable defaults
+- Validation of user-provided rent ranges
 
-### Usability
-- Intuitive navigation
-- Clear error messages
-- Helpful tooltips
-- Progress indicators
-- Responsive design
-- Accessibility compliance (WCAG 2.1 AA)
+### 8. Frontend User Interface
+**Description:** React-based single-page application with Material-UI.
 
-### Scalability
-- Support for 1000+ concurrent users
-- Efficient database queries
-- Caching strategies
-- CDN for static assets
+**Implemented Pages:**
+- **Login/Register** - User authentication
+- **Dashboard** - Overview of user's properties
+- **Properties List** - Manage all properties
+- **Property Detail** - View single property with all data
+- **Property Form** - Create/edit properties
+- **Reports** - View analysis reports
+- **Analysis (tRPC)** - Interactive analysis workflow
 
-## User Flow
+**Key Components:**
+- `AddressAutocomplete` - Google Places integration
+- `PropertyMap` - Interactive map display
+- `TenantProfileChat` - AI chat interface
+- `Layout` - Consistent app layout with navigation
+- `PrivateRoute` - Protected route wrapper
 
-### Primary Flow
-1. **Landing Page**
-   - Value proposition
-   - Call-to-action
-   - Optional login
+### 9. API Architecture
+**Description:** Dual API system for flexibility and type safety.
 
-2. **Property Input**
-   - Address entry
-   - Property details form
-   - Map verification
+**REST API:**
+- Traditional REST endpoints
+- Express.js routing
+- Controller-based architecture
+- JWT middleware authentication
 
-3. **Tenant Profile Generation**
-   - Chat/questionnaire interface
-   - AI processing
-   - Profile review and adjustment
+**tRPC API:**
+- Type-safe end-to-end API
+- Automatic TypeScript type generation
+- React Query integration
+- Zod schema validation
+- Procedures for all major operations
 
-4. **Amenity Recommendations**
-   - View suggestions
-   - Filter and sort
-   - Select amenities
-   - View cost estimates
+### 10. Development & Deployment Features
+**Description:** Modern development and deployment setup.
 
-5. **Results Dashboard**
-   - Summary view
-   - Detailed breakdowns
-   - Export options
+**Development Features:**
+- Docker and Docker Compose setup
+- Hot reloading with Nodemon
+- Concurrent frontend/backend development
+- Database seeding with test data
+- TypeScript throughout
+- ESLint and type checking
 
-6. **Report Generation**
-   - Customize content
-   - Preview
-   - Download/share
-
-## API Integrations
-
-### Google Maps API
-- Places Autocomplete
-- Maps JavaScript API
-- Geocoding API
-- Places API (nearby search)
-
-### OpenAI API
-- GPT-4 for tenant profile analysis
-- Embeddings for amenity matching
-- Fine-tuning for property-specific insights
-
-### Additional APIs (Future)
-- Real estate data APIs
-- Demographics APIs
-- Cost estimation databases
-- Market analysis services
+**Deployment Support:**
+- Vercel zero-config deployment
+- Docker production builds
+- Environment-based configuration
+- Nginx reverse proxy setup
+- Health check endpoints
 
 ## Data Models
+
+### User
+```typescript
+interface User {
+  id: string;
+  email: string;
+  password: string; // hashed
+  firstName: string;
+  lastName: string;
+  company?: string;
+  phone?: string;
+  role: 'user' | 'admin';
+  isActive: boolean;
+  lastLoginAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
 
 ### Property
 ```typescript
 interface Property {
   id: string;
-  userId?: string;
-  address: Address;
-  details: PropertyDetails;
-  location: {
-    lat: number;
-    lng: number;
+  userId: string;
+  name: string;
+  description?: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+    country?: string;
   };
+  details: {
+    numberOfUnits: number;
+    propertyType: string;
+    yearBuilt: number;
+    currentAmenities?: string[];
+    specialFeatures?: string;
+    targetRentRange: {
+      min: number;
+      max: number;
+    };
+    nearbyLandmarks?: string[];
+  };
+  latitude: number;
+  longitude: number;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -280,11 +257,18 @@ interface Property {
 interface TenantProfile {
   id: string;
   propertyId: string;
-  demographics: Demographics;
-  preferences: Preferences;
-  lifestyle: Lifestyle[];
-  confidence: number;
-  generatedAt: Date;
+  profileData: {
+    demographics: object;
+    lifestyle: object;
+    preferences: object;
+  };
+  chatHistory: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
@@ -295,13 +279,17 @@ interface Amenity {
   name: string;
   category: string;
   description: string;
-  estimatedCost: {
-    low: number;
-    high: number;
-  };
+  averageCost: number;
+  minCost: number;
+  maxCost: number;
   implementationTime: string;
-  impactScore: number;
+  monthlyMaintenance?: number;
   popularityScore: number;
+  impactScore: number;
+  tags: string[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
@@ -311,9 +299,45 @@ interface Analysis {
   id: string;
   propertyId: string;
   tenantProfileId: string;
-  recommendedAmenities: AmenityRecommendation[];
-  marketInsights: MarketInsight[];
-  competitiveAnalysis: CompetitiveData;
+  marketInsights?: string;
+  confidenceScore: number;
+  recommendations?: object;
+  isActive: boolean;
   createdAt: Date;
+  updatedAt: Date;
+  // Associated amenities through AnalysisAmenity
 }
 ```
+
+## Security Features
+
+- JWT authentication with secure token handling
+- Password hashing with bcrypt
+- Input validation and sanitization
+- SQL injection protection via Sequelize ORM
+- CORS configuration
+- Helmet.js security headers
+- Environment variable protection
+- API rate limiting (planned)
+
+## Performance Features
+
+- Database connection pooling
+- Lazy loading of associations
+- Efficient query optimization
+- Frontend code splitting
+- API response caching (planned)
+- CDN integration (planned)
+
+## Future Enhancements
+
+1. **PDF Report Generation** - Export analyses as professional PDFs
+2. **Email Notifications** - Property updates and analysis completion
+3. **Team Collaboration** - Share properties and analyses
+4. **Market Data Integration** - Real-time market data feeds
+5. **Mobile App** - Native mobile applications
+6. **Advanced Analytics** - Detailed ROI calculations and projections
+7. **Multi-language Support** - Internationalization
+8. **API Rate Limiting** - Protect against abuse
+9. **Webhook Support** - Integration with external systems
+10. **Batch Operations** - Bulk property imports/exports

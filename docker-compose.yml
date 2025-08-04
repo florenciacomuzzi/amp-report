@@ -26,10 +26,10 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ./src:/app/src
-      - ./package.json:/app/package.json
-      - ./tsconfig.json:/app/tsconfig.json
-      - /app/node_modules
+      - ./backend/src:/app/backend/src
+      - ./backend/package.json:/app/backend/package.json
+      - ./backend/tsconfig.json:/app/backend/tsconfig.json
+      - /app/backend/node_modules
     command: npm start
     restart: unless-stopped
     healthcheck:

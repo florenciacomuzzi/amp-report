@@ -9,8 +9,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./src:/app/src
-      - ./nodemon.json:/app/nodemon.json
+      - ./backend/src:/app/backend/src
+      - ./backend/nodemon.json:/app/backend/nodemon.json
     command: npm run dev
     ulimits:
       nofile:

@@ -1,359 +1,331 @@
 # UI Components Specification
 
+## Component Library
+The application uses Material-UI (MUI) v5 as the primary component library with custom styling and theme configuration.
+
 ## Core Components
 
-### 1. Glass Card Component
-```typescript
-interface GlassCardProps {
-  variant?: 'default' | 'subtle' | 'intense' | 'colored';
-  padding?: 'sm' | 'md' | 'lg' | 'xl';
-  blur?: 'sm' | 'md' | 'lg';
-  borderGlow?: boolean;
-  hoverable?: boolean;
-  className?: string;
-  children: ReactNode;
-}
-```
+### 1. Layout Component
+**Location:** `client/src/components/Layout.tsx`
 
-**Styles:**
-- Background with transparency and blur
-- Subtle border with glow effect
-- Hover state with increased border opacity
-- Support for dark/light themes
-
-### 2. Button Component
-```typescript
-interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'glass';
-  size?: 'sm' | 'md' | 'lg';
-  fullWidth?: boolean;
-  loading?: boolean;
-  disabled?: boolean;
-  icon?: ReactNode;
-  iconPosition?: 'left' | 'right';
-  onClick?: () => void;
-  children: ReactNode;
-}
-```
-
-**Variants:**
-- Primary: Solid background with hover effects
-- Secondary: Outlined with transparent background
-- Ghost: No border, subtle hover background
-- Glass: Glassmorphism effect with backdrop blur
-
-### 3. Input Component
-```typescript
-interface InputProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel';
-  label?: string;
-  placeholder?: string;
-  value?: string;
-  error?: string;
-  hint?: string;
-  icon?: ReactNode;
-  glassmorphism?: boolean;
-  onChange?: (value: string) => void;
-  onBlur?: () => void;
-}
-```
+**Description:** Main application layout wrapper with navigation and consistent styling.
 
 **Features:**
-- Floating label animation
-- Error state with red border
-- Optional glassmorphism background
-- Icon support
+- AppBar with navigation
+- User authentication status display
+- Logout functionality
+- Responsive drawer for mobile
+- Consistent padding and margins
 
-### 4. Select Component
+**Props:**
 ```typescript
-interface SelectProps {
-  options: Array<{ value: string; label: string }>;
-  value?: string;
-  label?: string;
-  placeholder?: string;
-  error?: string;
-  glassmorphism?: boolean;
-  onChange?: (value: string) => void;
+interface LayoutProps {
+  children: React.ReactNode;
 }
 ```
 
-### 5. Modal Component
-```typescript
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
-  glassmorphism?: boolean;
-  closeOnOverlayClick?: boolean;
-  children: ReactNode;
-}
-```
+### 2. AddressAutocomplete Component
+**Location:** `client/src/components/AddressAutocomplete.tsx`
+
+**Description:** Google Places-powered address autocomplete field.
 
 **Features:**
-- Backdrop blur effect
-- Smooth open/close animations
-- Keyboard navigation (ESC to close)
-- Focus trap
+- Integration with Google Places API
+- Autocomplete suggestions
+- Address parsing into components
+- Validation and error handling
 
-### 6. Toast/Notification Component
+**Props:**
 ```typescript
-interface ToastProps {
-  type?: 'success' | 'error' | 'warning' | 'info';
-  title: string;
-  description?: string;
-  duration?: number;
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
-  glassmorphism?: boolean;
+interface AddressAutocompleteProps {
+  onAddressSelect: (address: PlaceResult) => void;
+  defaultValue?: string;
+  error?: boolean;
+  helperText?: string;
 }
 ```
 
-### 7. Map Container Component
-```typescript
-interface MapContainerProps {
-  center: { lat: number; lng: number };
-  zoom?: number;
-  satellite?: boolean;
-  markers?: Array<{ position: { lat: number; lng: number }; title?: string }>;
-  onLocationSelect?: (location: { lat: number; lng: number }) => void;
-  glassmorphism?: boolean;
-  className?: string;
-}
-```
+### 3. PropertyMap Component
+**Location:** `client/src/components/PropertyMap.tsx`
+
+**Description:** Interactive Google Maps display for property locations.
 
 **Features:**
-- Google Maps integration
+- Google Maps integration using @react-google-maps/api
+- Property marker display
 - Satellite/Map view toggle
-- Custom marker styling
-- Glass overlay for controls
+- Zoom controls
+- Responsive sizing
 
-### 8. Chat Interface Component
+**Props:**
 ```typescript
-interface ChatInterfaceProps {
-  messages: Array<{
-    id: string;
-    type: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-  }>;
-  onSendMessage: (message: string) => void;
-  loading?: boolean;
-  placeholder?: string;
-  glassmorphism?: boolean;
-}
-```
-
-**Features:**
-- Message bubbles with glassmorphism
-- Typing indicator
-- Auto-scroll to latest message
-- Markdown support
-
-### 9. Property Form Component
-```typescript
-interface PropertyFormProps {
-  onSubmit: (data: PropertyData) => void;
-  initialData?: Partial<PropertyData>;
-  loading?: boolean;
-}
-
-interface PropertyData {
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  numberOfUnits: number;
-  propertyType: 'apartment' | 'condo' | 'townhouse' | 'single-family';
-  yearBuilt?: number;
-  features: string[];
-  preferences?: string;
-}
-```
-
-### 10. Amenity Card Component
-```typescript
-interface AmenityCardProps {
-  amenity: {
-    name: string;
-    category: string;
-    estimatedCost: {
-      low: number;
-      high: number;
-    };
-    description: string;
-    icon?: string;
-  };
-  selected?: boolean;
-  onToggle?: () => void;
-  glassmorphism?: boolean;
-}
-```
-
-### 11. Tenant Profile Display Component
-```typescript
-interface TenantProfileProps {
-  profile: {
-    demographics: {
-      ageRange: string;
-      incomeRange: string;
-      lifestyle: string[];
-    };
-    preferences: {
-      amenities: string[];
-      location: string[];
-      housing: string[];
-    };
-    score: number;
-  };
-  glassmorphism?: boolean;
-}
-```
-
-### 12. Navigation Component
-```typescript
-interface NavigationProps {
-  user?: {
-    name: string;
-    avatar?: string;
-  };
-  onLogin?: () => void;
-  onLogout?: () => void;
-  glassmorphism?: boolean;
-}
-```
-
-**Features:**
-- Sticky header with blur background
-- Dark/Light mode toggle
-- User menu dropdown
-- Mobile responsive hamburger menu
-
-### 13. Loading States
-```typescript
-interface SkeletonProps {
-  variant?: 'text' | 'rectangular' | 'circular';
-  width?: string | number;
+interface PropertyMapProps {
+  latitude: number;
+  longitude: number;
+  zoom?: number;
   height?: string | number;
-  animation?: 'pulse' | 'wave' | 'none';
-  glassmorphism?: boolean;
+  markers?: Array<{
+    lat: number;
+    lng: number;
+    title?: string;
+  }>;
 }
 ```
 
-### 14. Empty States
+### 4. TenantProfileChat Component
+**Location:** `client/src/components/TenantProfileChat.tsx`
+
+**Description:** AI-powered chat interface for tenant profile generation.
+
+**Features:**
+- Real-time chat with AI assistant
+- Message history display
+- Loading states
+- Auto-scroll to latest message
+- Input field with send button
+- Profile completion detection
+
+**Props:**
 ```typescript
-interface EmptyStateProps {
-  title: string;
-  description?: string;
-  icon?: ReactNode;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  glassmorphism?: boolean;
+interface TenantProfileChatProps {
+  propertyId: string;
+  onProfileComplete?: (profileId: string) => void;
 }
 ```
 
-## Glassmorphism Implementation
+### 5. PrivateRoute Component
+**Location:** `client/src/components/PrivateRoute.tsx`
 
-### CSS Utilities
-```css
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-}
+**Description:** Route wrapper for authentication-protected pages.
 
-.glass-dark {
-  background: rgba(17, 25, 40, 0.75);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.125);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
+**Features:**
+- Authentication check
+- Redirect to login if not authenticated
+- Preserves intended destination
+- Loading state while checking auth
 
-.glass-subtle {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-.glass-intense {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20px) saturate(200%);
-  -webkit-backdrop-filter: blur(20px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.glass-colored {
-  background: rgba(14, 165, 233, 0.15);
-  backdrop-filter: blur(10px) saturate(180%);
-  -webkit-backdrop-filter: blur(10px) saturate(180%);
-  border: 1px solid rgba(14, 165, 233, 0.3);
-}
-```
-
-### Animation Classes
-```css
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slideIn {
-  animation: slideIn 0.3s ease-out;
-}
-
-.animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-```
-
-## Theme Context Implementation
+**Props:**
 ```typescript
-interface ThemeContextValue {
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
-  colors: typeof colors;
-  glassmorphism: typeof glassmorphism;
+interface PrivateRouteProps {
+  children: React.ReactElement;
 }
 ```
 
-## Accessibility Guidelines
-1. All interactive elements must have proper ARIA labels
-2. Focus states must be clearly visible
-3. Color contrast must meet WCAG AA standards
-4. Keyboard navigation must be fully supported
-5. Screen reader announcements for dynamic content
-6. Proper heading hierarchy
-7. Form validation messages must be announced
-8. Loading states must be announced
+## Page Components
+
+### 1. Login Page
+**Location:** `client/src/pages/Login.tsx`
+
+**Features:**
+- Email/password form
+- Form validation
+- Error message display
+- Link to registration
+- Redux integration for auth state
+
+### 2. Register Page
+**Location:** `client/src/pages/Register.tsx`
+
+**Features:**
+- Full registration form (email, password, name, company, phone)
+- Password strength requirements
+- Form validation
+- Success/error handling
+- Auto-redirect after registration
+
+### 3. Dashboard Page
+**Location:** `client/src/pages/Dashboard.tsx`
+
+**Features:**
+- Welcome message with user's name
+- Quick stats cards
+- Recent properties list
+- Action buttons for common tasks
+- Empty state handling
+
+### 4. Properties Page
+**Location:** `client/src/pages/Properties.tsx`
+
+**Features:**
+- Property list/grid view
+- Property cards with key info
+- Create new property button
+- Edit/delete actions
+- Loading states
+- Empty state message
+
+### 5. PropertyDetail Page
+**Location:** `client/src/pages/PropertyDetail.tsx`
+
+**Features:**
+- Full property information display
+- Map view
+- Tenant profiles section
+- Analyses section
+- Edit/delete actions
+- Tabbed interface for sections
+
+### 6. PropertyForm Page
+**Location:** `client/src/pages/PropertyForm.tsx`
+
+**Features:**
+- Multi-step form or single form
+- Address autocomplete integration
+- Property details input
+- Amenities selection
+- Form validation
+- Save draft functionality
+- Success/error handling
+
+### 7. Reports Page
+**Location:** `client/src/pages/Reports.tsx`
+
+**Features:**
+- Analysis reports list
+- Filter by property
+- Report cards with summaries
+- View detailed report action
+- Export functionality (planned)
+
+### 8. AnalysisTRPC Page
+**Location:** `client/src/pages/AnalysisTRPC.tsx`
+
+**Features:**
+- tRPC integration example
+- Property selection
+- Tenant profile generation
+- Amenity recommendations
+- Analysis creation workflow
+
+## Material-UI Theme Configuration
+**Location:** `client/src/styles/theme.ts`
+
+**Theme Features:**
+- Custom color palette
+- Typography configuration
+- Component overrides
+- Responsive breakpoints
+- Custom shadows
+- Border radius values
+
+**Color Palette:**
+```typescript
+{
+  primary: {
+    main: '#1976d2',
+    light: '#42a5f5',
+    dark: '#1565c0',
+  },
+  secondary: {
+    main: '#dc004e',
+    light: '#e33371',
+    dark: '#9a0036',
+  },
+  background: {
+    default: '#f5f5f5',
+    paper: '#ffffff',
+  },
+  // ... more colors
+}
+```
+
+## Common MUI Components Used
+
+### 1. Form Components
+- **TextField** - Text inputs with various configurations
+- **Select/MenuItem** - Dropdown selections
+- **Checkbox/Radio** - Selection controls
+- **Button** - Action buttons with variants
+- **FormControl/FormLabel** - Form structure
+
+### 2. Layout Components
+- **Box** - Flexible container
+- **Container** - Responsive width container
+- **Grid** - 12-column grid system
+- **Stack** - Vertical/horizontal layouts
+- **Paper** - Elevated surfaces
+
+### 3. Navigation Components
+- **AppBar/Toolbar** - Top navigation
+- **Drawer** - Side navigation
+- **Tabs/Tab** - Tabbed interfaces
+- **Breadcrumbs** - Navigation hierarchy
+
+### 4. Data Display Components
+- **Card/CardContent** - Content cards
+- **Table** - Data tables
+- **List/ListItem** - Lists
+- **Typography** - Text components
+- **Chip** - Small info badges
+
+### 5. Feedback Components
+- **CircularProgress/LinearProgress** - Loading indicators
+- **Snackbar** - Toast notifications
+- **Alert** - Alert messages
+- **Dialog** - Modal dialogs
+- **Skeleton** - Loading placeholders
+
+## Form Handling
+The application uses React Hook Form for form management:
+
+```typescript
+const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
+```
+
+## State Management Components
+- **Redux Toolkit** - Global auth state
+- **React Query** - Server state caching
+- **Local State** - Component-specific state
+
+## Responsive Design
+All components follow Material-UI's responsive patterns:
+- Mobile-first approach
+- Breakpoint-based styling
+- Responsive typography
+- Flexible grids and layouts
+
+## Accessibility Features
+- Proper ARIA labels
+- Keyboard navigation support
+- Focus management
+- Screen reader compatibility
+- Color contrast compliance
+
+## Custom Styling Patterns
+```typescript
+// Using MUI's sx prop
+<Box sx={{ 
+  p: 2, 
+  bgcolor: 'background.paper',
+  borderRadius: 1,
+  boxShadow: 1
+}}>
+
+// Using styled components
+const StyledCard = styled(Card)(({ theme }) => ({
+  padding: theme.spacing(2),
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.shadows[4],
+  },
+}));
+```
+
+## Icon Usage
+The application uses Material Icons from @mui/icons-material:
+- Home, Dashboard, Add, Edit, Delete
+- Person, Logout, Settings
+- Map, Place, Business
+- Chat, Send, Check
+- Error, Warning, Info, Success
+
+## Component Best Practices
+1. TypeScript interfaces for all props
+2. Memoization for expensive computations
+3. Error boundaries for fault tolerance
+4. Loading states for async operations
+5. Empty states for no data scenarios
+6. Consistent spacing using theme.spacing()
+7. Responsive design using Grid and breakpoints
+8. Accessibility compliance

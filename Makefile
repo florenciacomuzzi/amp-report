@@ -8,16 +8,16 @@ REVEAL_PORT=1948
 .PHONY: install client-install db-seed slides slides-export docker-up docker-down docker-logs generate-types
 
 install:
-	npm install
+	cd backend && npm install
 
 client-install:
 	cd client && npm install
 
 db-seed:
-	npm run db:seed
+	cd backend && npm run db:seed
 
 generate-types:
-	npm run generate:trpc-types
+	cd backend && npm run generate:trpc-types
 
 # Launch presentation locally
 slides:

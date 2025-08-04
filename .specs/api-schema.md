@@ -7,10 +7,9 @@
 export const appRouter = router({
   auth: authRouter,
   property: propertyRouter,
-  tenant: tenantRouter,
+  tenantProfile: tenantProfileRouter,
   amenity: amenityRouter,
   analysis: analysisRouter,
-  user: userRouter,
 });
 
 export type AppRouter = typeof appRouter;
@@ -21,56 +20,56 @@ export type AppRouter = typeof appRouter;
 ### Procedures
 ```typescript
 export const authRouter = router({
+  // Register a new user
   register: publicProcedure
     .input(z.object({
       email: z.string().email(),
-      password: z.string().min(8),
-      name: z.string().min(2),
+      password: z.string().min(6),
+      firstName: z.string().min(1),
+      lastName: z.string().min(1),
+      company: z.string().optional(),
+      phone: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       // Create user with hashed password
-      // Return user and JWT token
+      // Returns user data and JWT token
+      return {
+        token: string,
+        user: {
+          id: string,
+          email: string,
+          firstName: string,
+          lastName: string,
+        }
+      }
     }),
 
+  // User login
   login: publicProcedure
     .input(z.object({
       email: z.string().email(),
-      password: z.string(),
+      password: z.string().min(1),
     }))
     .mutation(async ({ input }) => {
-      // Verify credentials
-      // Return user and JWT token
+      // Validates credentials and checks if user is active
+      // Updates lastLoginAt timestamp
+      // Returns user data and JWT token
+      return {
+        token: string,
+        user: {
+          id: string,
+          email: string,
+          firstName: string,
+          lastName: string,
+        }
+      }
     }),
 
-  logout: protectedProcedure
-    .mutation(async ({ ctx }) => {
-      // Invalidate session
-      // Return success
-    }),
-
-  refreshToken: protectedProcedure
-    .mutation(async ({ ctx }) => {
-      // Generate new JWT token
-      // Return new token
-    }),
-
-  forgotPassword: publicProcedure
-    .input(z.object({
-      email: z.string().email(),
-    }))
-    .mutation(async ({ input }) => {
-      // Send password reset email
-      // Return success
-    }),
-
-  resetPassword: publicProcedure
-    .input(z.object({
-      token: z.string(),
-      newPassword: z.string().min(8),
-    }))
-    .mutation(async ({ input }) => {
-      // Verify token and update password
-      // Return success
+  // Get current user
+  me: protectedProcedure
+    .query(({ ctx }) => {
+      // Returns current authenticated user
+      return { user: ctx.user }
     }),
 });
 ```
@@ -80,105 +79,129 @@ export const authRouter = router({
 ### Procedures
 ```typescript
 export const propertyRouter = router({
+  // List user's properties
+  list: protectedProcedure
+    .query(async ({ ctx }) => {
+      // Returns all active properties for the authenticated user
+      return { properties: Property[] }
+    }),
+
+  // Get single property
+  get: protectedProcedure
+    .input(z.string()) // property ID
+    .query(async ({ input, ctx }) => {
+      // Returns property with tenant profiles and analyses
+      // Checks ownership authorization
+      return { property: Property }
+    }),
+
+  // Create new property
   create: protectedProcedure
     .input(z.object({
       address: z.object({
         street: z.string(),
         city: z.string(),
         state: z.string(),
-        zipCode: z.string(),
-        country: z.string().default("US"),
+        zip: z.string(),
+        country: z.string().optional(),
       }),
-      numberOfUnits: z.number().positive(),
-      propertyType: z.enum(['apartment', 'condo', 'townhouse', 'single-family']),
-      yearBuilt: z.number().optional(),
-      currentAmenities: z.array(z.string()).optional(),
-      targetRentRange: z.object({
-        min: z.number(),
-        max: z.number(),
-      }).optional(),
-      preferences: z.string().optional(),
+      details: z.object({
+        numberOfUnits: z.number(),
+        propertyType: z.enum(['apartment', 'condo', 'townhouse', 'other']),
+        yearBuilt: z.number(),
+        currentAmenities: z.array(z.string()).optional(),
+        specialFeatures: z.string().optional(),
+        targetRentRange: z.object({
+          min: z.number(),
+          max: z.number(),
+        }),
+        nearbyLandmarks: z.array(z.string()).optional(),
+      }),
+      latitude: z.number().nullable().optional(),
+      longitude: z.number().nullable().optional(),
+      name: z.string(),
+      description: z.string().nullable().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // Geocode address using Google Maps
-      // Save property to database
-      // Return property with coordinates
+      // Creates property with automatic rent estimation if needed
+      // Sets default coordinates to Brooklyn if not provided
+      return { property: Property }
     }),
 
+  // Update property
   update: protectedProcedure
     .input(z.object({
       id: z.string(),
       data: z.object({
-        address: z.object({
-          street: z.string(),
-          city: z.string(),
-          state: z.string(),
-          zipCode: z.string(),
-        }).optional(),
-        numberOfUnits: z.number().optional(),
-        propertyType: z.enum(['apartment', 'condo', 'townhouse', 'single-family']).optional(),
-        yearBuilt: z.number().optional(),
-        currentAmenities: z.array(z.string()).optional(),
-        targetRentRange: z.object({
-          min: z.number(),
-          max: z.number(),
-        }).optional(),
-        preferences: z.string().optional(),
+        // Same fields as create, but all optional
+        address: AddressSchema.optional(),
+        details: DetailsSchema.optional(),
+        latitude: z.number().optional(),
+        longitude: z.number().optional(),
+        name: z.string().optional(),
+        description: z.string().nullable().optional(),
       }),
     }))
     .mutation(async ({ input, ctx }) => {
-      // Update property
-      // Re-geocode if address changed
-      // Return updated property
+      // Updates property after ownership check
+      return { property: Property }
     }),
 
-  delete: protectedProcedure
+  // Geocode address
+  geocode: protectedProcedure
+    .input(z.object({ address: z.string() }))
+    .mutation(async ({ input }) => {
+      // Uses Google Maps API or returns mock data if API key not configured
+      return {
+        result: {
+          formattedAddress: string,
+          latitude: number,
+          longitude: number,
+          placeId: string,
+        }
+      }
+    }),
+
+  // Estimate rent range
+  estimateRent: protectedProcedure
     .input(z.object({
-      id: z.string(),
+      address: AddressSchema,
+      details: PropertyDetailsSchema,
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
     }))
+    .mutation(async ({ input }) => {
+      // AI-powered rent estimation based on property details
+      return { 
+        estimate: {
+          min: number,
+          max: number,
+          confidence: number,
+        }
+      }
+    }),
+
+  // Get nearby places
+  nearbyPlaces: protectedProcedure
+    .input(z.object({ 
+      id: z.string(), // property ID
+      types: z.array(z.string()).optional() 
+    }))
+    .query(async ({ input }) => {
+      // Returns nearby places and static map URL
+      return { 
+        nearbyPlaces: Place[],
+        mapUrl: string 
+      }
+    }),
+
+  // Soft delete property
+  remove: protectedProcedure
+    .input(z.string()) // property ID
     .mutation(async ({ input, ctx }) => {
-      // Soft delete property
-      // Return success
-    }),
-
-  getById: protectedProcedure
-    .input(z.object({
-      id: z.string(),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Fetch property with related data
-      // Return property
-    }),
-
-  list: protectedProcedure
-    .input(z.object({
-      limit: z.number().default(10),
-      offset: z.number().default(0),
-      search: z.string().optional(),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Fetch user's properties
-      // Return paginated list
-    }),
-
-  validateAddress: publicProcedure
-    .input(z.object({
-      address: z.string(),
-    }))
-    .query(async ({ input }) => {
-      // Use Google Places API to validate
-      // Return validation result and suggestions
-    }),
-
-  getNearbyPlaces: protectedProcedure
-    .input(z.object({
-      propertyId: z.string(),
-      types: z.array(z.string()).optional(),
-      radius: z.number().default(1000),
-    }))
-    .query(async ({ input }) => {
-      // Use Google Places API
-      // Return nearby places
+      // Soft deletes property (sets isActive = false)
+      // Checks ownership authorization
+      return { success: true }
     }),
 });
 ```
@@ -187,86 +210,45 @@ export const propertyRouter = router({
 
 ### Procedures
 ```typescript
-export const tenantRouter = router({
-  generateProfile: protectedProcedure
+export const tenantProfileRouter = router({
+  // Create tenant profile for property
+  create: protectedProcedure
     .input(z.object({
       propertyId: z.string(),
-      conversationHistory: z.array(z.object({
-        role: z.enum(['user', 'assistant']),
-        content: z.string(),
-      })).optional(),
-      preferences: z.object({
-        targetDemographic: z.string().optional(),
-        incomeRange: z.object({
-          min: z.number(),
-          max: z.number(),
-        }).optional(),
-        lifestylePreferences: z.array(z.string()).optional(),
-      }).optional(),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      // Call OpenAI API for analysis
-      // Generate tenant profile
-      // Save to database
-      // Return profile
-    }),
-
-  updateProfile: protectedProcedure
-    .input(z.object({
-      id: z.string(),
-      updates: z.object({
-        demographics: z.object({
-          ageRange: z.string(),
-          incomeRange: z.string(),
-          education: z.string(),
-          occupation: z.array(z.string()),
-        }).partial(),
-        preferences: z.object({
-          amenities: z.array(z.string()),
-          location: z.array(z.string()),
-          housing: z.array(z.string()),
-        }).partial(),
-        lifestyle: z.array(z.string()).optional(),
-      }),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      // Update tenant profile
-      // Recalculate confidence scores
-      // Return updated profile
-    }),
-
-  getByProperty: protectedProcedure
-    .input(z.object({
-      propertyId: z.string(),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Fetch latest tenant profile
-      // Return profile with metadata
-    }),
-
-  chatWithAI: protectedProcedure
-    .input(z.object({
-      propertyId: z.string(),
-      message: z.string(),
-      conversationHistory: z.array(z.object({
+      chatHistory: z.array(z.object({
         role: z.enum(['user', 'assistant']),
         content: z.string(),
       })),
     }))
     .mutation(async ({ input, ctx }) => {
-      // Call OpenAI API for chat
-      // Process response
-      // Return AI response
+      // Generates AI-powered tenant profile based on chat
+      return { profile: TenantProfile }
     }),
 
-  exportProfile: protectedProcedure
-    .input(z.object({
-      profileId: z.string(),
-      format: z.enum(['pdf', 'json', 'csv']),
-    }))
+  // Get tenant profiles for property
+  getByProperty: protectedProcedure
+    .input(z.string()) // property ID
     .query(async ({ input, ctx }) => {
-      // Generate export file
-      // Return download URL
+      // Returns all tenant profiles for the property
+      return { profiles: TenantProfile[] }
+    }),
+
+  // Chat with AI for profile generation
+  chat: protectedProcedure
+    .input(z.object({
+      propertyId: z.string(),
+      message: z.string(),
+      chatHistory: z.array(z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      })).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      // AI chat response for tenant profile questions
+      return { 
+        response: string,
+        isComplete: boolean 
+      }
     }),
 });
 ```
@@ -276,68 +258,35 @@ export const tenantRouter = router({
 ### Procedures
 ```typescript
 export const amenityRouter = router({
-  getRecommendations: protectedProcedure
-    .input(z.object({
-      propertyId: z.string(),
-      tenantProfileId: z.string(),
-      budget: z.object({
-        min: z.number(),
-        max: z.number(),
-      }).optional(),
-      categories: z.array(z.string()).optional(),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Analyze tenant profile
-      // Match with amenity database
-      // Calculate scores and costs
-      // Return recommendations
-    }),
-
-  getCategories: publicProcedure
+  // List all amenities
+  list: publicProcedure
     .query(async () => {
-      // Return amenity categories
-      return [
-        { id: 'fitness', name: 'Fitness & Wellness', icon: 'dumbbell' },
-        { id: 'technology', name: 'Technology', icon: 'laptop' },
-        { id: 'community', name: 'Community', icon: 'users' },
-        { id: 'convenience', name: 'Convenience', icon: 'clock' },
-        { id: 'sustainability', name: 'Sustainability', icon: 'leaf' },
-        { id: 'luxury', name: 'Luxury', icon: 'gem' },
-      ];
+      // Returns all active amenities grouped by category
+      return { amenities: Amenity[] }
     }),
 
-  getDetails: protectedProcedure
-    .input(z.object({
-      amenityId: z.string(),
-      propertyId: z.string(),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Fetch amenity details
-      // Calculate property-specific costs
-      // Return detailed information
+  // Get amenity categories
+  categories: publicProcedure
+    .query(async () => {
+      // Returns unique amenity categories
+      return { categories: string[] }
     }),
 
-  calculateROI: protectedProcedure
+  // Get amenity recommendations
+  recommend: protectedProcedure
     .input(z.object({
       propertyId: z.string(),
-      amenityIds: z.array(z.string()),
-      implementationCosts: z.record(z.string(), z.number()),
+      tenantProfileId: z.string().optional(),
+      budget: z.object({
+        min: z.number().optional(),
+        max: z.number().optional(),
+      }).optional(),
     }))
-    .query(async ({ input, ctx }) => {
-      // Calculate potential rent increases
-      // Estimate payback period
-      // Return ROI analysis
-    }),
-
-  compareWithCompetitors: protectedProcedure
-    .input(z.object({
-      propertyId: z.string(),
-      radius: z.number().default(2000),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Find nearby properties
-      // Compare amenities
-      // Return competitive analysis
+    .query(async ({ input }) => {
+      // AI-powered amenity recommendations
+      return { 
+        recommendations: AmenityRecommendation[] 
+      }
     }),
 });
 ```
@@ -347,281 +296,161 @@ export const amenityRouter = router({
 ### Procedures
 ```typescript
 export const analysisRouter = router({
-  createAnalysis: protectedProcedure
+  // Create comprehensive analysis
+  create: protectedProcedure
     .input(z.object({
       propertyId: z.string(),
       tenantProfileId: z.string(),
-      selectedAmenities: z.array(z.string()),
+      selectedAmenityIds: z.array(z.string()),
     }))
     .mutation(async ({ input, ctx }) => {
-      // Create comprehensive analysis
-      // Generate insights
-      // Save to database
-      // Return analysis
+      // Creates analysis with market insights
+      return { analysis: Analysis }
     }),
 
-  getAnalysis: protectedProcedure
-    .input(z.object({
-      analysisId: z.string(),
-    }))
+  // Get analysis by ID
+  get: protectedProcedure
+    .input(z.string()) // analysis ID
     .query(async ({ input, ctx }) => {
-      // Fetch analysis with all related data
-      // Return complete analysis
+      // Returns full analysis with associations
+      return { analysis: Analysis }
     }),
 
-  generateReport: protectedProcedure
-    .input(z.object({
-      analysisId: z.string(),
-      format: z.enum(['pdf', 'excel', 'powerpoint']),
-      sections: z.array(z.enum([
-        'executive-summary',
-        'property-overview',
-        'tenant-profile',
-        'amenity-recommendations',
-        'cost-analysis',
-        'roi-projections',
-        'competitive-analysis',
-        'implementation-timeline',
-      ])),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      // Generate report
-      // Upload to storage
-      // Return download URL
+  // List analyses for property
+  listByProperty: protectedProcedure
+    .input(z.string()) // property ID
+    .query(async ({ input, ctx }) => {
+      // Returns all analyses for the property
+      return { analyses: Analysis[] }
     }),
 
-  getMarketInsights: protectedProcedure
+  // Generate market insights
+  generateInsights: protectedProcedure
     .input(z.object({
       propertyId: z.string(),
-      radius: z.number().default(5000),
+      tenantProfileId: z.string(),
     }))
+    .mutation(async ({ input }) => {
+      // AI-generated market insights
+      return { 
+        insights: {
+          marketOverview: string,
+          competitiveAnalysis: string,
+          recommendations: string[],
+        }
+      }
+    }),
+
+  // Export analysis as PDF
+  export: protectedProcedure
+    .input(z.string()) // analysis ID
     .query(async ({ input, ctx }) => {
-      // Fetch market data
-      // Analyze trends
-      // Return insights
+      // Generates PDF report
+      return { 
+        pdfUrl: string,
+        fileName: string 
+      }
     }),
 });
 ```
 
-## User Router
+## REST API Endpoints (Legacy)
 
-### Procedures
+The application also maintains REST endpoints for compatibility:
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
+
+### Properties
+- `GET /api/properties` - List properties
+- `GET /api/properties/:id` - Get property details
+- `POST /api/properties` - Create property
+- `PUT /api/properties/:id` - Update property
+- `DELETE /api/properties/:id` - Delete property
+- `POST /api/properties/geocode` - Geocode address
+- `GET /api/properties/:id/nearby-places` - Get nearby places
+
+### Tenant Profiles
+- `GET /api/tenant-profiles` - List tenant profiles
+- `GET /api/tenant-profiles/:id` - Get tenant profile
+- `POST /api/tenant-profiles` - Create tenant profile
+- `PUT /api/tenant-profiles/:id` - Update tenant profile
+- `DELETE /api/tenant-profiles/:id` - Delete tenant profile
+- `POST /api/tenant-profiles/chat` - Chat with AI
+
+### Amenities
+- `GET /api/amenities` - List amenities
+- `GET /api/amenities/categories` - Get categories
+- `GET /api/amenities/:id` - Get amenity details
+- `POST /api/amenities/recommendations` - Get recommendations
+
+### Analysis
+- `GET /api/analysis` - List analyses
+- `GET /api/analysis/:id` - Get analysis
+- `POST /api/analysis` - Create analysis
+- `POST /api/analysis/report/:id/export` - Export PDF
+
+## Data Types
+
+### Common Types
 ```typescript
-export const userRouter = router({
-  getProfile: protectedProcedure
-    .query(async ({ ctx }) => {
-      // Return user profile
-    }),
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country?: string;
+}
 
-  updateProfile: protectedProcedure
-    .input(z.object({
-      name: z.string().optional(),
-      company: z.string().optional(),
-      phone: z.string().optional(),
-      preferences: z.object({
-        defaultPropertyType: z.string().optional(),
-        emailNotifications: z.boolean().optional(),
-        theme: z.enum(['light', 'dark', 'system']).optional(),
-      }).optional(),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      // Update user profile
-      // Return updated profile
-    }),
+interface PropertyDetails {
+  numberOfUnits: number;
+  propertyType: 'apartment' | 'condo' | 'townhouse' | 'other';
+  yearBuilt: number;
+  currentAmenities?: string[];
+  specialFeatures?: string;
+  targetRentRange: {
+    min: number;
+    max: number;
+  };
+  nearbyLandmarks?: string[];
+}
 
-  deleteAccount: protectedProcedure
-    .input(z.object({
-      confirmation: z.literal('DELETE'),
-    }))
-    .mutation(async ({ input, ctx }) => {
-      // Soft delete user account
-      // Return success
-    }),
-
-  getActivity: protectedProcedure
-    .input(z.object({
-      limit: z.number().default(20),
-      offset: z.number().default(0),
-    }))
-    .query(async ({ input, ctx }) => {
-      // Fetch user activity history
-      // Return paginated results
-    }),
-});
-```
-
-## Database Schema (PostgreSQL)
-
-### Users Table
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  company VARCHAR(255),
-  phone VARCHAR(50),
-  email_verified BOOLEAN DEFAULT false,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMP
-);
-```
-
-### Properties Table
-```sql
-CREATE TABLE properties (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  address_street VARCHAR(255) NOT NULL,
-  address_city VARCHAR(100) NOT NULL,
-  address_state VARCHAR(50) NOT NULL,
-  address_zip VARCHAR(20) NOT NULL,
-  latitude DECIMAL(10, 8),
-  longitude DECIMAL(11, 8),
-  number_of_units INTEGER NOT NULL,
-  property_type VARCHAR(50) NOT NULL,
-  year_built INTEGER,
-  target_rent_min DECIMAL(10, 2),
-  target_rent_max DECIMAL(10, 2),
-  preferences TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMP
-);
-```
-
-### Tenant Profiles Table
-```sql
-CREATE TABLE tenant_profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  property_id UUID REFERENCES properties(id),
-  demographics JSONB NOT NULL,
-  preferences JSONB NOT NULL,
-  lifestyle JSONB NOT NULL,
-  confidence_score DECIMAL(3, 2),
-  ai_conversation JSONB,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Amenities Table
-```sql
-CREATE TABLE amenities (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  category VARCHAR(100) NOT NULL,
-  description TEXT,
-  base_cost_low DECIMAL(10, 2),
-  base_cost_high DECIMAL(10, 2),
-  implementation_time VARCHAR(50),
-  impact_score DECIMAL(3, 2),
-  popularity_score DECIMAL(3, 2),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Analyses Table
-```sql
-CREATE TABLE analyses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  property_id UUID REFERENCES properties(id),
-  tenant_profile_id UUID REFERENCES tenant_profiles(id),
-  selected_amenities JSONB,
-  market_insights JSONB,
-  competitive_analysis JSONB,
-  roi_projections JSONB,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Property Amenities Table (Many-to-Many)
-```sql
-CREATE TABLE property_amenities (
-  property_id UUID REFERENCES properties(id),
-  amenity_id UUID REFERENCES amenities(id),
-  status VARCHAR(50) DEFAULT 'existing',
-  added_date DATE,
-  PRIMARY KEY (property_id, amenity_id)
-);
-```
-
-### User Sessions Table
-```sql
-CREATE TABLE user_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  token VARCHAR(255) UNIQUE NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Activity Log Table
-```sql
-CREATE TABLE activity_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  action VARCHAR(100) NOT NULL,
-  resource_type VARCHAR(50),
-  resource_id UUID,
-  metadata JSONB,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+interface AmenityRecommendation {
+  amenity: Amenity;
+  score: number;
+  reasoning: string;
+  estimatedROI?: number;
+  implementationCost: {
+    min: number;
+    max: number;
+  };
+}
 ```
 
 ## Error Handling
 
-### Standard Error Response
+All tRPC procedures follow consistent error handling:
+
+- `UNAUTHORIZED` - Missing or invalid authentication
+- `FORBIDDEN` - User lacks permission for resource
+- `NOT_FOUND` - Resource not found
+- `CONFLICT` - Resource already exists (e.g., email in use)
+- `BAD_REQUEST` - Invalid input data
+- `INTERNAL_SERVER_ERROR` - Server error
+
+## Authentication Context
+
+Protected procedures have access to:
 ```typescript
-interface ErrorResponse {
-  code: string;
-  message: string;
-  details?: any;
-  timestamp: string;
+interface Context {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
 }
-
-// Error codes
-enum ErrorCode {
-  // Auth errors
-  UNAUTHORIZED = 'UNAUTHORIZED',
-  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
-  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
-  
-  // Validation errors
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  INVALID_INPUT = 'INVALID_INPUT',
-  
-  // Resource errors
-  NOT_FOUND = 'NOT_FOUND',
-  ALREADY_EXISTS = 'ALREADY_EXISTS',
-  
-  // External API errors
-  GOOGLE_API_ERROR = 'GOOGLE_API_ERROR',
-  OPENAI_API_ERROR = 'OPENAI_API_ERROR',
-  
-  // Server errors
-  INTERNAL_ERROR = 'INTERNAL_ERROR',
-  DATABASE_ERROR = 'DATABASE_ERROR',
-}
-```
-
-## Rate Limiting
-
-```typescript
-// Rate limit configuration
-const rateLimits = {
-  auth: {
-    login: { window: '15m', max: 5 },
-    register: { window: '1h', max: 3 },
-    forgotPassword: { window: '1h', max: 3 },
-  },
-  api: {
-    openai: { window: '1m', max: 10 },
-    googleMaps: { window: '1m', max: 30 },
-    general: { window: '1m', max: 100 },
-  },
-};
 ```
