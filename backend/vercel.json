@@ -1,14 +1,12 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm install",
   "functions": {
     "api/index.ts": {
+      "runtime": "@vercel/node@3.0.0",
       "maxDuration": 30,
-      "includeFiles": "node_modules/pg/**"
+      "includeFiles": "node_modules/{pg,pg-native,pg-hstore,buffer-writer,packet-reader,pg-pool,pg-protocol,pg-types,pgpass}/**"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/api/index" }
   ]
 }

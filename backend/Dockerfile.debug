@@ -1,0 +1,25 @@
+# Simple debug Dockerfile for Cloud Run
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install all dependencies
+RUN npm install
+
+# Copy all source files
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Set the port
+ENV PORT=3000
+
+# Expose the port
+EXPOSE 3000
+
+# Start with node directly (no dumb-init for debugging)
+CMD ["node", "dist/index.js"]

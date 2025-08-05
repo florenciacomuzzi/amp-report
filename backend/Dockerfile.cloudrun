@@ -1,0 +1,50 @@
+# Cloud Run optimized Dockerfile
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY src ./src
+COPY api ./api
+COPY scripts ./scripts
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
+# Copy source files needed at runtime
+COPY src ./src
+COPY api ./api
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Important: Cloud Run sets PORT env variable (defaults to 8080)
+EXPOSE 8080
+
+# Start the application directly without dumb-init
+CMD ["node", "dist/index.js"]

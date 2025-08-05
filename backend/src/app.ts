@@ -42,6 +42,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check endpoint for Cloud Run
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'healthy', service: 'amp-report-backend' });
+});
+
 app.get('/', (_req, res) => {
   res.json({ 
     message: 'AMP Report API',

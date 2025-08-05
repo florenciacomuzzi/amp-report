@@ -56,3 +56,48 @@ services:
         soft: 65536
         hard: 65536
 
+  # Test the Cloud Run backend container
+  backend-cloud-run:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: amp-report-backend-cloud-run
+    environment:
+      - PORT=3002
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=amp_report
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - JWT_SECRET=test-secret
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # PostgreSQL database (for local development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: amp-report-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: amp_report
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
