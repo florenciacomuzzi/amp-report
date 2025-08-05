@@ -22,7 +22,6 @@ import {
   Menu as MenuIcon,
   Dashboard,
   Home,
-  Assessment,
   Description,
   Logout as LogoutIcon,
   Person,
