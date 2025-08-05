@@ -1,5 +1,6 @@
 {
-  "buildCommand": "npm install && npm run build",
+  "installCommand": "npm install --force",
+  "buildCommand": "npm run build",
   "outputDirectory": "build",
   "framework": "create-react-app",
   "rewrites": [
