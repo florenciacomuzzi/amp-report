@@ -31,7 +31,7 @@ AMP Report is a web application that helps property managers and real estate pro
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/amp-report.git
+git clone https://github.com/florenciacomuzzi/amp-report.git
 cd amp-report
 ```
 
@@ -124,34 +124,83 @@ For development and testing purposes, a test user is available:
 
 ```
 amp-report/
-├── src/
-│   ├── config/         # Configuration files
-│   ├── controllers/    # Route controllers
-│   ├── middleware/     # Express middleware
-│   ├── models/         # Sequelize models
-│   ├── routes/         # API routes
-│   ├── services/       # Business logic
-│   ├── types/          # TypeScript types
-│   ├── utils/          # Utility functions
-│   ├── seeders/        # Database seeders
-│   ├── app.ts          # Express app setup
-│   └── index.ts        # Server entry point
-├── .specs/             # Feature specifications
-├── package.json
-├── tsconfig.json
+├── backend/            # Express + tRPC backend
+│   ├── src/
+│   │   ├── config/         # Configuration files
+│   │   ├── controllers/    # Route controllers
+│   │   ├── middleware/     # Express middleware
+│   │   ├── models/         # Sequelize models
+│   │   ├── routes/         # API routes
+│   │   ├── services/       # Business logic
+│   │   ├── trpc/           # tRPC routers and context
+│   │   ├── types/          # TypeScript types
+│   │   ├── utils/          # Utility functions
+│   │   ├── seeders/        # Database seeders
+│   │   ├── app.ts          # Express app setup
+│   │   └── index.ts        # Server entry point
+│   ├── api/                # Vercel serverless function
+│   ├── scripts/            # Backend utility scripts
+│   ├── package.json
+│   └── tsconfig.json
+├── client/             # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── pages/          # Page components
+│   │   ├── services/       # API services
+│   │   ├── store/          # Redux store
+│   │   ├── styles/         # Theme and styles
+│   │   ├── types/          # TypeScript types
+│   │   ├── utils/          # Utility functions
+│   │   ├── App.tsx         # Main app component
+│   │   └── index.tsx       # Entry point
+│   ├── public/             # Static assets
+│   ├── package.json
+│   └── tsconfig.json
+├── api/                # Vercel API wrapper
+├── nginx/              # Nginx configuration
+├── scripts/            # Docker and deployment scripts
+├── slides/             # MVP presentation
+├── docker-compose.yml  # Docker configuration
+├── Makefile            # Build automation
+├── vercel.json         # Vercel deployment config
 └── README.md
 ```
 
 ## Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
+### Backend Scripts (run from `backend/` directory)
+- `npm run dev` - Start backend development server with hot reload
+- `npm run build` - Build TypeScript backend for production
 - `npm start` - Start production server
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint on backend code
 - `npm run typecheck` - Run TypeScript type checking
 - `npm run db:seed` - Seed database with initial data
 - `npm run db:reset` - Reset and reseed database
-- `npm run present:mvp` - Launch the Reveal.js slide deck for the MVP
+- `npm run generate:trpc-types` - Generate tRPC type definitions
+- `npm run dev:all` - Run backend and frontend concurrently
+
+### Frontend Scripts (run from `client/` directory)
+- `npm start` - Start React development server
+- `npm run build` - Build React app for production
+- `npm run lint` - Run ESLint on frontend code
+- `npm run typecheck` - Run TypeScript type checking
+
+### Makefile Commands (run from root directory)
+- `make install` - Install backend dependencies
+- `make client-install` - Install frontend dependencies
+- `make db-seed` - Seed database via Makefile
+- `make docker-up` - Start Docker development environment
+- `make docker-down` - Stop Docker containers
+- `make docker-logs` - View Docker container logs
+- `make generate-types` - Generate tRPC type definitions
+- `make slides` - Launch MVP presentation locally
+- `make slides-export` - Export presentation as static HTML
+
+### Backend Deployment (Google Cloud Run)
+- `make show-config` - Display current GCP configuration
+- `make gcp-auth` - Configure GCP authentication and enable required services
+- `make deploy-backend` - Build and deploy backend to Cloud Run
+- `make deploy-backend-env` - Deploy backend with environment variables from .env file
 
 ## Production Deployment
 
@@ -320,18 +369,8 @@ If you are using Neon Postgres (recommended) simply paste its connection string 
 
 ### 4. Deploying
 
-```bash
-vercel --prod   # or use the dashboard’s “Deploy” button
-```
-
-The deployment pipeline performs these steps:
-
-1. Install **root** dependencies (API)
-2. Install **client/** dependencies and run `npm run build` (CRA)
-3. Bundle `api/index.ts` into a Node 20 serverless function
-4. Create routes so that:
-   - `https://your-domain.vercel.app/api/*` → Express serverless function
-   - `https://your-domain.vercel.app/*`    → React static site / SPA routing
+For the frontend, push code to the git repository.
+For backend, `make deploy-backend`.
 
 ### 5. Local development remains unchanged
 
